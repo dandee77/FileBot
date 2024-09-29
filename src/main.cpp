@@ -5,6 +5,7 @@
 #include "json.hpp"
 #include <thread>
 #include <cstdlib>
+#include <fstream>
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -63,11 +64,13 @@ void listUserDirectories()
     }
 }
 
-unordered_map<string, string> loadEmbeddedFileTypeMap()
+unordered_map<string, string> loadFileTypeMap(const string &jsonFile)
 {
     unordered_map<string, string> fileTypeMap;
 
-    json j = json::parse(embedded_json);
+    std::ifstream file(jsonFile);
+    json j;
+    file >> j;
 
     for (auto &[category, extensions] : j.items())
     {
@@ -80,39 +83,43 @@ unordered_map<string, string> loadEmbeddedFileTypeMap()
     return fileTypeMap;
 }
 
-void processFile(const fs::path &file, unordered_map<string, string> &fileTypeMap)
+void processFile(const fs::path &file, unordered_map<string, string> &fileTypeMap, const fs::path &targetDirectory)
 {
     string filename = file.filename().string();
     string extension = fs::path(filename).extension().string();
 
-    if (filename == "FileBot.exe")
+    if (filename == "main.exe")
         return;
 
     auto it = fileTypeMap.find(extension);
     if (it != fileTypeMap.end())
     {
-        fs::create_directory(it->second);
-        fs::rename(file, fs::path(it->second) / filename);
-        cout << "Moved " << it->second << " file: " << filename << endl;
+        fs::path targetSubDir = targetDirectory / it->second;
+        fs::create_directory(targetSubDir);
+        fs::rename(file, targetSubDir / filename);
+        cout << "Moved " << it->second << " file: " << filename << " to " << targetSubDir << endl;
     }
     else
     {
-        fs::create_directory("defaults");
-        fs::rename(file, fs::path("defaults") / filename);
-        cout << "Moved unknown file: " << filename << endl;
+        fs::path defaultDir = targetDirectory / "defaults";
+        fs::create_directory(defaultDir);
+        fs::rename(file, defaultDir / filename);
+        cout << "Moved unknown file: " << filename << " to " << defaultDir << endl;
     }
 }
 
 void moveFiles(const string &directory)
 {
-    unordered_map<string, string> fileTypeMap = loadEmbeddedFileTypeMap();
+    unordered_map<string, string> fileTypeMap = loadFileTypeMap("src/filetypes.json");
+
+    cout << "Successfully loaded file type map." << endl;
 
     vector<thread> threads;
     for (const auto &file : fs::directory_iterator(directory))
     {
         if (file.is_regular_file())
         {
-            threads.push_back(thread(processFile, file.path(), ref(fileTypeMap)));
+            threads.push_back(thread(processFile, file.path(), ref(fileTypeMap), fs::path(directory)));
         }
     }
 
@@ -162,13 +169,12 @@ void checkEnvironmentVariables()
     }
 }
 
-//! NOT WORKING ON VSCODE TANGINA OUTDATED LANG PALA COMPILER
-// COMPILE AND RUN IT ON TERMINAL OR CMD
-
 int main()
 {
     std::cout << "Application started!" << std::endl;
-    checkEnvironmentVariables();
+    // checkEnvironmentVariables();
+
+    selectDirectoryToSort();
     cout << "All files have been moved." << endl;
     std::cin.get();
     return 0;
