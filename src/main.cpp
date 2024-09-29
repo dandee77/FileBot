@@ -42,19 +42,19 @@ string getHomeDirectory()
 
 void listUserDirectories()
 {
-    const char *homeDir = getHomeDirectory().c_str();
+    string homeDir = getHomeDirectory();
 
-    if (homeDir)
+    if (!homeDir.empty())
     {
         std::cout << "User Home Directory: " << homeDir << std::endl;
 
-        fs::path desktop = (fs::path(homeDir) / "Desktop").string();
-        fs::path documents = (fs::path(homeDir) / "Documents").string();
-        fs::path downloads = (fs::path(homeDir) / "Downloads").string();
+        fs::path desktop = fs::path(homeDir) / "Desktop";
+        fs::path documents = fs::path(homeDir) / "Documents";
+        fs::path downloads = fs::path(homeDir) / "Downloads";
 
-        std::cout << "1. Desktop: " << desktop << std::endl;
-        std::cout << "2. Documents: " << documents << std::endl;
-        std::cout << "3. Downloads: " << downloads << std::endl;
+        std::cout << "1. Desktop: " << desktop.string() << std::endl;
+        std::cout << "2. Documents: " << documents.string() << std::endl;
+        std::cout << "3. Downloads: " << downloads.string() << std::endl;
         std::cout << "4. Other Directory (Please Enter Path): ";
     }
     else
