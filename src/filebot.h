@@ -20,10 +20,9 @@ private:
 
 public:
     filebot(const string &fileTypeMapPath);
-    void selectDirectoryToSort();
+    void run();
     void checkEnvironmentVariables();
 
 private:
-    void listUserDirectories(vector<fs::path> &directories);
     void moveFiles(const string &directory);
 };

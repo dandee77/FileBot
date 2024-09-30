@@ -44,31 +44,6 @@ filebot::filebot(const string &fileTypeMapPath)
     }
 }
 
-void filebot::listUserDirectories(vector<fs::path> &directories)
-{
-    if (homeDirectory)
-    {
-        cout << "User Home Directory: " << homeDirectory << endl;
-
-        int index = 1;
-        for (const auto &entry : fs::directory_iterator(homeDirectory))
-        {
-            if (entry.is_directory())
-            {
-                directories.push_back(entry.path());
-                cout << index << ". " << entry.path().string() << endl;
-                index++;
-            }
-        }
-        cout << index << ". Other Directory (Enter full path): ";
-    }
-    else
-    {
-        log::print(logLevel::ERROR, "HOMEDIRECTORY not set.");
-        cin.get();
-    }
-}
-
 void filebot::moveFiles(const string &directory)
 {
     unordered_map<string, string> fileTypeMap = loadFileTypeMap("src/filetypes.json");
@@ -114,11 +89,26 @@ void filebot::moveFiles(const string &directory)
     }
 }
 
-void filebot::selectDirectoryToSort()
+void filebot::run()
 {
     vector<fs::path> directories;
-    listUserDirectories(directories);
 
+    // Display user directories
+    cout << "User Home Directory: " << homeDirectory << endl;
+
+    int index = 1;
+    for (const auto &entry : fs::directory_iterator(homeDirectory))
+    {
+        if (entry.is_directory())
+        {
+            directories.push_back(entry.path());
+            cout << index << ". " << entry.path().string() << endl;
+            index++;
+        }
+    }
+    cout << index << ". Other Directory (Enter full path): ";
+
+    // Select directory
     int choice;
     cin >> choice;
 

@@ -5,6 +5,6 @@ int main()
 {
     filebot app("src/filetypes.json");
     // app.checkEnvironmentVariables();
-    app.selectDirectoryToSort();
+    app.run();
     return 0;
 }
