@@ -1,30 +1,7 @@
 #include "filebot.h"
 #include "log.h"
 
-filebot::filebot(const string &fileTypeMapPath)
-{
-    fileTypeMap = loadFileTypeMap(fileTypeMapPath);
-    homeDirectory = getHomeDirectory();
-}
-
-string filebot::getHomeDirectory()
-{
-#ifdef _WIN32
-    const char *homeDir = getenv("USERPROFILE"); // Windows
-#else
-    const char *homeDir = getenv("HOME"); // Linux/macOS
-#endif
-
-    if (!homeDir)
-    {
-        log::print(logLevel::ERROR, "Could not determine home directory.");
-        return "";
-    }
-
-    return string(homeDir);
-}
-
-unordered_map<string, string> filebot::loadFileTypeMap(const string &jsonFile)
+static unordered_map<string, string> loadFileTypeMap(const string &jsonFile)
 {
     unordered_map<string, string> map;
     ifstream file(jsonFile);
@@ -38,12 +15,38 @@ unordered_map<string, string> filebot::loadFileTypeMap(const string &jsonFile)
             map[ext] = category;
         }
     }
+
+    if (map.empty())
+    {
+        log::print(logLevel::ERROR, "Could not load file type map.");
+        cin.get();
+    }
+
     return map;
+}
+
+filebot::filebot(const string &fileTypeMapPath)
+{
+    // Load the file type map
+    fileTypeMap = loadFileTypeMap(fileTypeMapPath);
+
+// Get the home directory of the user
+#ifdef _WIN32
+    homeDirectory = getenv("USERPROFILE"); // Windows
+#else
+    homeDirectory = getenv("HOME"); // Linux/macOS
+#endif
+
+    if (!homeDirectory)
+    {
+        log::print(logLevel::ERROR, "Could not determine home directory.");
+        cin.get();
+    }
 }
 
 void filebot::listUserDirectories(vector<fs::path> &directories)
 {
-    if (!homeDirectory.empty())
+    if (homeDirectory)
     {
         cout << "User Home Directory: " << homeDirectory << endl;
 
@@ -68,45 +71,46 @@ void filebot::listUserDirectories(vector<fs::path> &directories)
 
 void filebot::moveFiles(const string &directory)
 {
-    log::print(logLevel::INFO, "filetypemap loaded successfully.");
+    unordered_map<string, string> fileTypeMap = loadFileTypeMap("src/filetypes.json");
 
     vector<thread> threads;
+
+    auto processFiles = [&fileTypeMap](const fs::path &file, const fs::path &targetDirectory)
+    {
+        string filename = file.filename().string();
+        string extension = fs::path(filename).extension().string();
+
+        if (filename == "main.exe")
+            return;
+
+        auto it = fileTypeMap.find(extension);
+        if (it != fileTypeMap.end())
+        {
+            fs::path targetSubDir = targetDirectory / it->second;
+            fs::create_directory(targetSubDir);
+            fs::rename(file, targetSubDir / filename);
+            cout << "Moved " << it->second << " file: " << filename << " to " << targetSubDir << endl;
+        }
+        else
+        {
+            fs::path defaultDir = targetDirectory / "defaults";
+            fs::create_directory(defaultDir);
+            fs::rename(file, defaultDir / filename);
+            cout << "Moved unknown file: " << filename << " to " << defaultDir << endl;
+        }
+    };
+
     for (const auto &file : fs::directory_iterator(directory))
     {
         if (file.is_regular_file())
         {
-            threads.push_back(thread(&filebot::processFile, this, file.path(), fs::path(directory)));
+            threads.push_back(thread(processFiles, file.path(), fs::path(directory)));
         }
     }
 
     for (auto &th : threads)
     {
         th.join();
-    }
-}
-
-void filebot::processFile(const fs::path &file, const fs::path &targetDirectory)
-{
-    string filename = file.filename().string();
-    string extension = fs::path(filename).extension().string();
-
-    if (filename == "main.exe")
-        return;
-
-    auto it = fileTypeMap.find(extension);
-    if (it != fileTypeMap.end())
-    {
-        fs::path targetSubDir = targetDirectory / it->second;
-        fs::create_directory(targetSubDir);
-        fs::rename(file, targetSubDir / filename);
-        cout << "Moved " << it->second << " file: " << filename << " to " << targetSubDir << endl;
-    }
-    else
-    {
-        fs::path defaultDir = targetDirectory / "defaults";
-        fs::create_directory(defaultDir);
-        fs::rename(file, defaultDir / filename);
-        cout << "Moved unknown file: " << filename << " to " << defaultDir << endl;
     }
 }
 
