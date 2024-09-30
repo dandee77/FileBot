@@ -1,4 +1,4 @@
-# FileBot - Backend
+# FileBot - UNFINISHED
 
 A simple automatic file sorter built using C++ and Raylib. This program organizes files into different categories like images, audio, video, and documents, based on their extensions.
 
