@@ -11,18 +11,6 @@ namespace fs = std::filesystem;
 using json = nlohmann::json;
 using namespace std;
 
-const std::string embedded_json = R"(
-{
-    "archives": [".zip", ".rar", ".7z", ".tar", ".gz", ".bz2", ".xz", ".iso", ".dmg", ".pkg"],
-    "executables": [".exe", ".msi", ".apk", ".app", ".bat", ".sh", ".deb", ".rpm", ".jar"],
-    "scripts": [".py", ".js", ".php", ".rb", ".java", ".pl", ".sh", ".swift", ".html", ".css", ".cpp", ".h", ".cs", ".go", ".ts", ".lua", ".r", ".json", ".xml", ".yml", ".yaml"],
-    "images": [".jpg", ".png", ".bmp", ".gif", ".webp", ".hdr", ".raw", ".ico", ".svg", ".psd"],
-    "audio": [".mp3", ".wav", ".flac", ".ogg", ".aac", ".m4a", ".ac3", ".wma", ".aiff", ".alac", ".dsd", ".ape", ".opus", ".mka", ".mpc"],
-    "videos": [".mp4", ".avi", ".mkv", ".mov", ".wmv", ".webm", ".mpeg", ".flv", ".vob", ".3gp", ".m4v", ".m2ts", ".ts", ".f4v", ".f4p", ".f4a", ".f4b"],
-    "documents": [".pdf", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".txt", ".md", ".html", ".xps", ".epub", ".mobi", ".azw", ".azw3", ".djvu", ".fb2", ".pdb", ".lit", ".prc", ".ibooks", ".cbz", ".cbr", ".cb7", ".cbt", ".cba", ".chm", ".doc"]
-}
-)";
-
 string getHomeDirectory()
 {
 #ifdef _WIN32
@@ -40,7 +28,7 @@ string getHomeDirectory()
     return string(homeDir);
 }
 
-void listUserDirectories()
+void listUserDirectories(vector<fs::path> &directories)
 {
     string homeDir = getHomeDirectory();
 
@@ -48,14 +36,18 @@ void listUserDirectories()
     {
         std::cout << "User Home Directory: " << homeDir << std::endl;
 
-        fs::path desktop = fs::path(homeDir) / "Desktop";
-        fs::path documents = fs::path(homeDir) / "Documents";
-        fs::path downloads = fs::path(homeDir) / "Downloads";
+        int index = 1;
+        for (const auto &entry : fs::directory_iterator(homeDir))
+        {
+            if (entry.is_directory())
+            {
+                directories.push_back(entry.path());
+                std::cout << index << ". " << entry.path().string() << std::endl;
+                index++;
+            }
+        }
 
-        std::cout << "1. Desktop: " << desktop.string() << std::endl;
-        std::cout << "2. Documents: " << documents.string() << std::endl;
-        std::cout << "3. Downloads: " << downloads.string() << std::endl;
-        std::cout << "4. Other Directory (Please Enter Path): ";
+        std::cout << index << ". Other Directory (Enter full path): ";
     }
     else
     {
@@ -131,24 +123,17 @@ void moveFiles(const string &directory)
 
 void selectDirectoryToSort()
 {
-    listUserDirectories();
+    vector<fs::path> directories;
+    listUserDirectories(directories);
 
     int choice;
     std::cin >> choice;
 
     std::string directory;
 
-    if (choice == 1)
+    if (choice > 0 && choice <= (int)directories.size())
     {
-        directory = (fs::path(getenv("USERPROFILE")) / "Desktop").string();
-    }
-    else if (choice == 2)
-    {
-        directory = (fs::path(getenv("USERPROFILE")) / "Documents").string();
-    }
-    else if (choice == 3)
-    {
-        directory = (fs::path(getenv("USERPROFILE")) / "Downloads").string();
+        directory = directories[choice - 1].string();
     }
     else
     {
@@ -173,9 +158,8 @@ int main()
 {
     std::cout << "Application started!" << std::endl;
     // checkEnvironmentVariables();
-
     selectDirectoryToSort();
-    cout << "All files have been moved." << endl;
+    cout << "Application works successfully" << endl;
     std::cin.get();
     return 0;
 }
