@@ -25,4 +25,5 @@ public:
 
 private:
     void moveFiles(const string &directory);
+    void navigateAndSort(const fs::path &currentDirectory);
 };

@@ -27,10 +27,10 @@ static unordered_map<string, string> loadFileTypeMap(const string &jsonFile)
 
 filebot::filebot(const string &fileTypeMapPath)
 {
-    // Load the file type map
+    // load the file type map
     fileTypeMap = loadFileTypeMap(fileTypeMapPath);
 
-// Get the home directory of the user
+// get the home directory of the user
 #ifdef _WIN32
     homeDirectory = getenv("USERPROFILE"); // Windows
 #else
@@ -91,13 +91,21 @@ void filebot::moveFiles(const string &directory)
 
 void filebot::run()
 {
-    vector<fs::path> directories;
+    // start in the users home directory
+    navigateAndSort(static_cast<fs::path>(homeDirectory));
+}
 
-    // Display user directories
-    cout << "User Home Directory: " << homeDirectory << endl;
+void filebot::navigateAndSort(const fs::path &currentDirectory) // shii recursive
+{
+    system("cls");
+    vector<fs::path> directories;
+    string action;
+
+    // display current directory contents
+    cout << "\nCurrent Directory: " << currentDirectory.string() << endl;
 
     int index = 1;
-    for (const auto &entry : fs::directory_iterator(homeDirectory))
+    for (const auto &entry : fs::directory_iterator(currentDirectory))
     {
         if (entry.is_directory())
         {
@@ -106,29 +114,37 @@ void filebot::run()
             index++;
         }
     }
-    cout << index << ". Other Directory (Enter full path): ";
 
-    // Select directory
-    int choice;
-    cin >> choice;
+    cout << "\nOptions:\n";
+    cout << "Enter directory number to navigate or 'sort' to sort the current directory files: ";
 
-    string directory;
+    cin >> action;
 
-    if (choice > 0 && choice <= (int)directories.size())
+    if (action == "sort")
     {
-        directory = directories[choice - 1].string();
+        // sort files in the current directory
+        cout << "\nSorting files in: " << currentDirectory.string() << endl;
+        moveFiles(currentDirectory.string());
     }
     else
     {
-        cout << "Please enter a full path: ";
-        cin >> directory;
-    }
+        int choice = stoi(action);
 
-    cout << "Sorting files in: " << directory << endl;
-    moveFiles(directory);
+        // check if user input is a valid directory index
+        if (choice > 0 && choice <= (int)directories.size())
+        {
+            // recursively navigate into the selected subdir
+            navigateAndSort(directories[choice - 1]);
+        }
+        else
+        {
+            cout << "Invalid choice. Please try again.\n";
+            navigateAndSort(currentDirectory);
+        }
+    }
 }
 
-void filebot::checkEnvironmentVariables() // Use this if getHomeDirectory() fails
+void filebot::checkEnvironmentVariables() // use this if getHomeDirectory() fails
 {
     for (char **env = environ; *env != 0; env++)
     {
