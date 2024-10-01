@@ -91,17 +91,23 @@ void filebot::moveFiles(const string &directory)
 
 void filebot::run()
 {
-    // start in the users home directory
-    navigateAndSort(static_cast<fs::path>(homeDirectory));
+    navigateAndSort(homeDirectory);
+    log::print(logLevel::INFO, "Exiting program.");
 }
 
-void filebot::navigateAndSort(const fs::path &currentDirectory) // shii recursive
+void filebot::navigateAndSort(const fs::path &currentDirectory)
 {
-    system("cls");
+#ifdef _WIN32
+    system("cls"); // might remove later
+#else
+    system("clear");
+#endif
+
+    static const fs::path startingDirectory = currentDirectory;
     vector<fs::path> directories;
     string action;
 
-    // display current directory contents
+    // Display current directory contents
     cout << "\nCurrent Directory: " << currentDirectory.string() << endl;
 
     int index = 1;
@@ -116,29 +122,48 @@ void filebot::navigateAndSort(const fs::path &currentDirectory) // shii recursiv
     }
 
     cout << "\nOptions:\n";
-    cout << "Enter directory number to navigate or 'sort' to sort the current directory files: ";
+    cout << "Enter directory number to navigate, 'sort' to sort the current directory, or 'back' to move up a directory: ";
 
     cin >> action;
 
     if (action == "sort")
     {
-        // sort files in the current directory
+        // Sort files in the current directory
         cout << "\nSorting files in: " << currentDirectory.string() << endl;
         moveFiles(currentDirectory.string());
     }
+    else if (action == "back")
+    {
+        // Check if were not at the starting directory (home directory)
+        if (currentDirectory != startingDirectory)
+        {
+            // Move one level up to the parent directory
+            fs::path parentDir = currentDirectory.parent_path();
+            navigateAndSort(parentDir);
+        }
+        else
+        {
+            cout << "\nYou are already at the starting directory. Cannot move back further.\n";
+            navigateAndSort(currentDirectory);
+        }
+    }
+    else if (action == "exit")
+    {
+        return;
+    }
     else
     {
+        // Check if user input is a valid directory index
         int choice = stoi(action);
 
-        // check if user input is a valid directory index
         if (choice > 0 && choice <= (int)directories.size())
         {
-            // recursively navigate into the selected subdir
+            // Recursively navigate into the selected subdirectory
             navigateAndSort(directories[choice - 1]);
         }
         else
         {
-            cout << "Invalid choice. Please try again.\n";
+            cout << "\nInvalid choice. Please try again.\n";
             navigateAndSort(currentDirectory);
         }
     }
